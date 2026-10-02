@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Pediu",
+      "hasCanvas": false,
+      "bodyTextLen": 2045,
+      "bodyTextHash": "5bd5fe067071b38d0079846702bd439be776f52f7b8594c7937519f1dd598f86",
+      "bodyTextPrefix": "Pediu Pediu, chegou. Casa Boa noite. Madruga pede Flash. A gente",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Pediu",
+      "hasCanvas": false,
+      "bodyTextLen": 2045,
+      "bodyTextHash": "5bd5fe067071b38d0079846702bd439be776f52f7b8594c7937519f1dd598f86",
+      "bodyTextPrefix": "Pediu Pediu, chegou. Casa Boa noite. Madruga pede Flash. A gente",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}
