@@ -10,7 +10,7 @@ export const Route = createFileRoute("/app")({ component: AndroidPage });
 const STEPS = [
   {
     title: "Baixe o instalador",
-    body: "O arquivo tem cerca de 2 MB. O Android avisa que é de fora da Play Store — é esperado.",
+    body: "O Android avisa que o arquivo vem de fora da Play Store — é esperado, pode seguir.",
   },
   {
     title: "Toque em abrir e confirme",
