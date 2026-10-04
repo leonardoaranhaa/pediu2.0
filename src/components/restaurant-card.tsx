@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Clock, Heart, Star, Zap } from "lucide-react";
-import type { Restaurant } from "@/lib/data";
+import { shownFee, shownRating, type Restaurant } from "@/lib/data";
 import { formatFee, formatRange } from "@/lib/format";
 import { usePediu } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,10 @@ export function RestaurantCard({
 }) {
   const fav = usePediu((s) => s.favorites.includes(restaurant.id));
   const toggle = usePediu((s) => s.toggleFavorite);
+  const userRating = usePediu((s) => s.ratings[restaurant.id]);
+  const points = usePediu((s) => s.points);
+  const shown = shownRating(restaurant.rating, restaurant.reviewCount, userRating);
+  const fee = shownFee(restaurant.deliveryFee, restaurant.flash, points);
 
   return (
     <Link
@@ -59,15 +63,15 @@ export function RestaurantCard({
       <div className="flex items-center gap-3 px-3 py-3 text-xs font-medium text-muted">
         <span className="inline-flex items-center gap-1 text-fg">
           <Star className="size-3.5 fill-accent text-accent" />
-          <span className="tabular-nums font-display font-semibold">{restaurant.rating.toFixed(1)}</span>
-          <span className="text-subtle">({restaurant.reviewCount.toLocaleString("pt-BR")})</span>
+          <span className="tabular-nums font-display font-semibold">{shown.score.toFixed(1)}</span>
+          <span className="text-subtle">({shown.count.toLocaleString("pt-BR")})</span>
         </span>
         <span className="inline-flex items-center gap-1">
           <Clock className="size-3.5" />
           {formatRange(restaurant.deliveryMin, restaurant.deliveryMax)}
         </span>
-        <span className={cn("ml-auto", restaurant.deliveryFee === 0 && "text-success font-semibold")}>
-          {formatFee(restaurant.deliveryFee)}
+        <span className={cn("ml-auto", fee === 0 && "text-success font-semibold")}>
+          {formatFee(fee)}
         </span>
       </div>
     </Link>
@@ -76,6 +80,10 @@ export function RestaurantCard({
 
 export function RestaurantRow({ restaurant }: { restaurant: Restaurant }) {
   const fav = usePediu((s) => s.favorites.includes(restaurant.id));
+  const userRating = usePediu((s) => s.ratings[restaurant.id]);
+  const points = usePediu((s) => s.points);
+  const shown = shownRating(restaurant.rating, restaurant.reviewCount, userRating);
+  const fee = shownFee(restaurant.deliveryFee, restaurant.flash, points);
   return (
     <Link
       to="/restaurants/$id"
@@ -94,9 +102,10 @@ export function RestaurantRow({ restaurant }: { restaurant: Restaurant }) {
         <div className="mt-2 flex items-center gap-2 text-[11px] text-muted">
           <span className="inline-flex items-center gap-0.5 font-display font-semibold text-fg">
             <Star className="size-3 fill-accent text-accent" />
-            {restaurant.rating.toFixed(1)}
+            {shown.score.toFixed(1)}
           </span>
           <span>{formatRange(restaurant.deliveryMin, restaurant.deliveryMax)}</span>
+          <span className={fee === 0 ? "font-semibold text-success" : undefined}>{formatFee(fee)}</span>
           {restaurant.flash ? (
             <span className="rounded-full bg-accent px-1.5 py-0.5 font-display text-[10px] font-bold text-accent-fg">
               Flash

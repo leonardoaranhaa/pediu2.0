@@ -48,6 +48,7 @@ export function Stories() {
           index={open}
           onClose={() => setOpen(null)}
           onNext={() => setOpen((i) => (i === null ? i : i + 1 >= stories.length ? null : i + 1))}
+          onPrev={() => setOpen((i) => (i === null ? i : i - 1 < 0 ? i : i - 1))}
         />
       ) : null}
     </>
@@ -58,10 +59,12 @@ function StoryViewer({
   index,
   onClose,
   onNext,
+  onPrev,
 }: {
   index: number;
   onClose: () => void;
   onNext: () => void;
+  onPrev: () => void;
 }) {
   const stories = STORY_IDS.map((id) => RESTAURANTS.find((r) => r.id === id)).filter(
     (r): r is Restaurant => Boolean(r),
@@ -105,7 +108,7 @@ function StoryViewer({
             Pedir agora
           </Link>
         </div>
-        <button type="button" className="absolute inset-y-0 left-0 w-1/3" aria-label="Anterior" onClick={onClose} />
+        <button type="button" className="absolute inset-y-0 left-0 w-1/3" aria-label="Anterior" onClick={onPrev} />
         <button type="button" className="absolute inset-y-0 right-0 w-1/3" aria-label="Próxima" onClick={onNext} />
       </div>
     </div>

@@ -1,14 +1,23 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { type DeliveryStatus } from "@/lib/clock";
 import {
   applyCoupon,
   COURIERS,
   dishesOf,
+  earnedPoints,
   getAddress,
   getDish,
   getRestaurant,
+  REDEEM_BRL,
+  REDEEM_POINTS,
+  clubTier,
   type Extra,
 } from "@/lib/data";
+
+export type { DeliveryStatus };
+export { deliveryClock, STATUS_LABEL, useNow } from "@/lib/clock";
+export type OrderStatus = DeliveryStatus;
 
 export type CartItem = {
   key: string;
@@ -24,7 +33,22 @@ export type CartItem = {
 
 export type PaymentMethod = "pix" | "card" | "cash";
 
-export type OrderStatus = "received" | "preparing" | "on_the_way" | "arriving" | "delivered";
+export type ChatMsg = {
+  id: string;
+  from: "me" | "courier";
+  text: string;
+  at: number;
+};
+
+export type Notif = {
+  id: string;
+  title: string;
+  body: string;
+  at: number;
+  read: boolean;
+  to?: "/" | "/search" | "/market" | "/taste" | "/club" | "/orders";
+  q?: string;
+};
 
 export type Order = {
   id: string;
@@ -35,6 +59,7 @@ export type Order = {
   subtotal: number;
   deliveryFee: number;
   discount: number;
+  tip: number;
   total: number;
   status: OrderStatus;
   createdAt: number;
@@ -42,8 +67,15 @@ export type Order = {
   payment: PaymentMethod;
   addressId: string;
   coupon?: string;
-  courier: { name: string; vehicle: string };
+  courier: { name: string; vehicle: string; plate: string; rating: number; trips: number; hue: number };
   flash: boolean;
+  scheduled?: string;
+  junto?: boolean;
+  rating?: number;
+  /** What this person pays. Equals total unless Pediu Junto splits the table. */
+  share?: number;
+  cpfOnInvoice?: boolean;
+  pointsEarned?: number;
 };
 
 type AddPayload = {
@@ -64,12 +96,25 @@ type PediuState = {
   orders: Order[];
   recentSearches: string[];
   seenSplash: boolean;
+  points: number;
+  tip: number;
+  schedule: string | null;
+  junto: boolean;
+  chats: Record<string, ChatMsg[]>;
+  notifications: Notif[];
+  /** BRL already redeemed, waiting on the next bag. */
+  pointsCredit: number;
+  /** Latest star rating this person gave each restaurant. */
+  ratings: Record<string, number>;
   setName: (name: string) => void;
   setAddress: (id: string) => void;
   setPayment: (p: PaymentMethod) => void;
   toggleCpf: () => void;
   toggleFavorite: (id: string) => void;
   setCoupon: (code: string | null) => void;
+  setTip: (n: number) => void;
+  setSchedule: (s: string | null) => void;
+  toggleJunto: () => void;
   addToCart: (payload: AddPayload) => "ok" | "conflict";
   replaceCartWith: (payload: AddPayload) => void;
   updateQty: (key: string, qty: number) => void;
@@ -78,6 +123,11 @@ type PediuState = {
   markSplashSeen: () => void;
   placeOrder: () => Order | null;
   orderById: (id: string) => Order | undefined;
+  rateOrder: (id: string, rating: number) => void;
+  redeemPoints: () => boolean;
+  sendChat: (orderId: string, text: string, from?: ChatMsg["from"]) => void;
+  seedCourierChat: (orderId: string, text: string) => void;
+  markNotifsRead: () => void;
 };
 
 function itemKey(dishId: string, extras: Extra[], notes: string) {
@@ -92,17 +142,39 @@ function extraSum(extras: Extra[]) {
   return extras.reduce((s, e) => s + e.price, 0);
 }
 
-export function cartTotals(cart: CartItem[], coupon: string | null, payment: PaymentMethod) {
+function roundMoney(n: number) {
+  return Math.round(n * 100) / 100;
+}
+
+export function chargeOf(foodTotal: number, tip: number, junto: boolean) {
+  const grand = roundMoney(foodTotal + tip);
+  const share = junto ? roundMoney(grand / 3) : grand;
+  return { grand, share };
+}
+
+export function cartTotals(
+  cart: CartItem[],
+  coupon: string | null,
+  payment: PaymentMethod,
+  loyalty: { points?: number; pointsCredit?: number } = {},
+) {
   const subtotal = cart.reduce((s, i) => s + i.unitPrice * i.qty, 0);
   const restaurantId = cart[0]?.restaurantId;
   const restaurant = restaurantId ? getRestaurant(restaurantId) : undefined;
   const baseFee = restaurant?.deliveryFee ?? 0;
   const applied = applyCoupon(coupon, subtotal, baseFee, Boolean(restaurant?.flash), payment);
-  const total = Math.max(0, subtotal + applied.deliveryFee - applied.discount);
+  const tier = clubTier(loyalty.points ?? 0);
+  const clubFree = tier.id === "flash" && Boolean(restaurant?.flash) && applied.deliveryFee > 0;
+  const deliveryFee = clubFree ? 0 : applied.deliveryFee;
+  const room = Math.max(0, subtotal - applied.discount);
+  const pointsCredit = Math.min(loyalty.pointsCredit ?? 0, room);
+  const total = Math.max(0, roundMoney(subtotal + deliveryFee - applied.discount - pointsCredit));
   return {
     subtotal,
-    deliveryFee: applied.deliveryFee,
+    deliveryFee,
     discount: applied.discount,
+    pointsCredit,
+    clubFree,
     total,
     restaurant,
     couponLabel: applied.label,
@@ -127,6 +199,26 @@ function buildItem(payload: AddPayload): CartItem | null {
   };
 }
 
+const STARTER_NOTIFS: Notif[] = [
+  {
+    id: "n-flash",
+    title: "Flash 99 na Augusta",
+    body: "Cinco motos livres a menos de 1 km. Smash e coxinha saem agora.",
+    at: Date.now() - 42 * 60_000,
+    read: false,
+    to: "/search",
+    q: "flash",
+  },
+  {
+    id: "n-cupom",
+    title: "PEDIU10 te espera",
+    body: "10% na sacola acima de R$ 40. Vale hoje.",
+    at: Date.now() - 5 * 3600_000,
+    read: false,
+    to: "/search",
+  },
+];
+
 export const usePediu = create<PediuState>()(
   persist(
     (set, get) => ({
@@ -140,6 +232,14 @@ export const usePediu = create<PediuState>()(
       orders: [],
       recentSearches: ["pizza", "açaí", "flash"],
       seenSplash: false,
+      points: 268,
+      tip: 2,
+      schedule: null,
+      junto: false,
+      chats: {},
+      notifications: STARTER_NOTIFS,
+      pointsCredit: 0,
+      ratings: {},
       setName: (name) => set({ name: name.trim() || "Você" }),
       setAddress: (id) => set({ addressId: id }),
       setPayment: (p) => set({ payment: p }),
@@ -151,6 +251,9 @@ export const usePediu = create<PediuState>()(
             : [...get().favorites, id],
         }),
       setCoupon: (code) => set({ coupon: code }),
+      setTip: (n) => set({ tip: n }),
+      setSchedule: (s) => set({ schedule: s }),
+      toggleJunto: () => set({ junto: !get().junto }),
       addToCart: (payload) => {
         const next = buildItem(payload);
         if (!next) return "ok";
@@ -184,12 +287,27 @@ export const usePediu = create<PediuState>()(
       },
       markSplashSeen: () => set({ seenSplash: true }),
       placeOrder: () => {
-        const { cart, coupon, payment, addressId, orders } = get();
+        const {
+          cart,
+          coupon,
+          payment,
+          addressId,
+          orders,
+          tip,
+          schedule,
+          junto,
+          points,
+          pointsCredit,
+          notifications,
+          cpfOnInvoice,
+        } = get();
         if (!cart.length) return null;
-        const totals = cartTotals(cart, coupon, payment);
+        const totals = cartTotals(cart, coupon, payment, { points, pointsCredit });
         const restaurant = totals.restaurant;
         if (!restaurant) return null;
         const courier = COURIERS[Math.floor(Math.random() * COURIERS.length)]!;
+        const { grand, share } = chargeOf(totals.total, tip, junto);
+        const earned = earnedPoints(share, points);
         const order: Order = {
           id: `PD-${Date.now().toString(36).toUpperCase()}`,
           restaurantId: restaurant.id,
@@ -199,20 +317,86 @@ export const usePediu = create<PediuState>()(
           subtotal: totals.subtotal,
           deliveryFee: totals.deliveryFee,
           discount: totals.discount,
-          total: totals.total,
+          tip,
+          total: grand,
+          share,
           status: "received",
           createdAt: Date.now(),
-          etaMins: restaurant.flash ? restaurant.deliveryMax : restaurant.deliveryMax,
+          etaMins: restaurant.deliveryMax,
           payment,
           addressId,
           coupon: coupon ?? undefined,
           courier,
           flash: restaurant.flash,
+          scheduled: schedule ?? undefined,
+          junto,
+          cpfOnInvoice,
+          pointsEarned: earned,
         };
-        set({ orders: [order, ...orders], cart: [], coupon: null });
+        const hello: ChatMsg = {
+          id: `${order.id}-hi`,
+          from: "courier",
+          text: `Oi, aqui é ${courier.name.split(" ")[0]}. Peguei seu Pediu.`,
+          at: Date.now(),
+        };
+        set({
+          orders: [order, ...orders],
+          cart: [],
+          coupon: null,
+          schedule: null,
+          junto: false,
+          points: points + earned,
+          pointsCredit: roundMoney(Math.max(0, pointsCredit - totals.pointsCredit)),
+          chats: { ...get().chats, [order.id]: [hello] },
+          notifications: [
+            {
+              id: `n-${order.id}`,
+              title: junto ? "Pediu Junto no fogo" : "Pedido no fogo",
+              body: `${restaurant.name} · ${earned} pontos no Clube`,
+              at: Date.now(),
+              read: false,
+              to: "/orders" as const,
+            },
+            ...notifications,
+          ].slice(0, 12),
+        });
         return order;
       },
       orderById: (id) => get().orders.find((o) => o.id === id),
+      rateOrder: (id, rating) => {
+        const order = get().orders.find((o) => o.id === id);
+        if (!order) return;
+        set({
+          orders: get().orders.map((o) => (o.id === id ? { ...o, rating } : o)),
+          ratings: { ...(get().ratings ?? {}), [order.restaurantId]: rating },
+        });
+      },
+      redeemPoints: () => {
+        const { points, pointsCredit } = get();
+        if (points < REDEEM_POINTS) return false;
+        set({
+          points: points - REDEEM_POINTS,
+          pointsCredit: roundMoney((pointsCredit ?? 0) + REDEEM_BRL),
+        });
+        return true;
+      },
+      sendChat: (orderId, text, from = "me") => {
+        const t = text.trim();
+        if (!t) return;
+        const prev = get().chats[orderId] ?? [];
+        const msg: ChatMsg = { id: `${orderId}-${Date.now()}`, from, text: t, at: Date.now() };
+        set({ chats: { ...get().chats, [orderId]: [...prev, msg] } });
+      },
+      seedCourierChat: (orderId, text) => {
+        const prev = get().chats[orderId] ?? [];
+        if (prev.some((m) => m.from === "courier" && m.text === text)) return;
+        const msg: ChatMsg = { id: `${orderId}-c-${Date.now()}`, from: "courier", text, at: Date.now() };
+        set({ chats: { ...get().chats, [orderId]: [...prev, msg] } });
+      },
+      markNotifsRead: () =>
+        set({
+          notifications: get().notifications.map((n) => ({ ...n, read: true })),
+        }),
     }),
     { name: "pediu-v1", skipHydration: true },
   ),

@@ -517,12 +517,110 @@ export const DISHES: Dish[] = [
 ];
 
 export const COURIERS = [
-  { name: "Camila Souza", vehicle: "Moto Flash" },
-  { name: "Rafael Lima", vehicle: "Moto 99" },
-  { name: "Thiago Alves", vehicle: "Bike Flash" },
-  { name: "Jéssica Rocha", vehicle: "Moto Flash" },
-  { name: "Bruno Nunes", vehicle: "Moto 99" },
+  { name: "Camila Souza", vehicle: "Moto Flash", plate: "RFL-0A99", rating: 4.97, trips: 1840, hue: 12 },
+  { name: "Rafael Lima", vehicle: "Moto 99", plate: "QWE-9B12", rating: 4.92, trips: 2210, hue: 32 },
+  { name: "Thiago Alves", vehicle: "Bike Flash", plate: "BIKE-04", rating: 4.99, trips: 640, hue: 200 },
+  { name: "Jéssica Rocha", vehicle: "Moto Flash", plate: "JSC-4412", rating: 4.95, trips: 1102, hue: 340 },
+  { name: "Bruno Nunes", vehicle: "Moto 99", plate: "BRN-7781", rating: 4.9, trips: 980, hue: 160 },
 ];
+
+export type Promo = {
+  id: string;
+  kicker: string;
+  title: string;
+  subtitle: string;
+  image: string;
+  to: "/" | "/search" | "/market" | "/taste" | "/club";
+  q?: string;
+  tone: "primary" | "accent" | "ink";
+};
+
+export const PROMOS: Promo[] = [
+  {
+    id: "flash",
+    kicker: "Flash 99",
+    title: "Chega em 15 min",
+    subtitle: "Motos livres agora na Consolação",
+    image: "/food/burger.jpg",
+    to: "/search",
+    q: "flash",
+    tone: "accent",
+  },
+  {
+    id: "cupom",
+    kicker: "PEDIU10",
+    title: "10% na primeira sacola",
+    subtitle: "Válido acima de R$ 40",
+    image: "/food/pizza.jpg",
+    to: "/search",
+    tone: "primary",
+  },
+  {
+    id: "mercado",
+    kicker: "Mercado",
+    title: "Relâmpago 25 min",
+    subtitle: "Leite, pão e banana agora",
+    image: "/food/feijoada.jpg",
+    to: "/market",
+    tone: "ink",
+  },
+  {
+    id: "sabor",
+    kicker: "Sabor",
+    title: "O que pedir agora?",
+    subtitle: "A fome escolhe o cardápio",
+    image: "/food/acai.jpg",
+    to: "/taste",
+    tone: "primary",
+  },
+];
+
+export const JUNTO = [
+  { id: "mari", name: "Mari", initial: "M" },
+  { id: "joao", name: "João", initial: "J" },
+];
+
+export const CANNED_REPLIES = [
+  "Pode deixar na portaria",
+  "Já estou descendo",
+  "Tô no portão",
+];
+
+export const TIP_OPTIONS = [0, 2, 5, 8] as const;
+
+export function hoursFor(flash: boolean) {
+  return flash ? "Aberto 24h · Flash" : "10:00 – 23:30";
+}
+
+export function clubTier(points: number) {
+  if (points >= 800) return { id: "flash" as const, name: "Flash 99", next: null as number | null, perk: "Entrega grátis nos Flash" };
+  if (points >= 250) return { id: "prata" as const, name: "Prata", next: 800, perk: "1,2× pontos em todo pedido" };
+  return { id: "inicio" as const, name: "Pediu", next: 250, perk: "Cupom de boas-vindas" };
+}
+
+/** 100 points become R$ 10 on the next bag. */
+export const REDEEM_POINTS = 100;
+export const REDEEM_BRL = 10;
+
+export function pointsMultiplier(points: number) {
+  return clubTier(points).id === "inicio" ? 1 : 1.2;
+}
+
+export function earnedPoints(amount: number, points: number) {
+  if (amount <= 0) return 0;
+  return Math.max(1, Math.round(amount * pointsMultiplier(points)));
+}
+
+export function shownRating(base: number, reviewCount: number, userRating?: number) {
+  if (!userRating) return { score: base, count: reviewCount };
+  const score = Math.round(((base * reviewCount + userRating) / (reviewCount + 1)) * 10) / 10;
+  return { score, count: reviewCount + 1 };
+}
+
+export function shownFee(fee: number, flash: boolean, points: number) {
+  if (flash && clubTier(points).id === "flash") return 0;
+  return fee;
+}
 
 export type TasteMood = {
   id: string;

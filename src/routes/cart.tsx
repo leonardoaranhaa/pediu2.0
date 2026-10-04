@@ -18,7 +18,9 @@ function CartPage() {
   const clearCart = usePediu((s) => s.clearCart);
   const setCoupon = usePediu((s) => s.setCoupon);
   const addToCart = usePediu((s) => s.addToCart);
-  const totals = cartTotals(cart, coupon, payment);
+  const points = usePediu((s) => s.points);
+  const pointsCredit = usePediu((s) => s.pointsCredit);
+  const totals = cartTotals(cart, coupon, payment, { points, pointsCredit });
   const [code, setCode] = useState(coupon ?? "");
   const restaurant = totals.restaurant;
   const suggestions = restaurant
@@ -192,7 +194,7 @@ function CartPage() {
             <dd className="tabular-nums">{formatBRL(totals.subtotal)}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-muted">Entrega</dt>
+            <dt className="text-muted">{totals.clubFree ? "Entrega · Clube Flash" : "Entrega"}</dt>
             <dd className={totals.deliveryFee === 0 ? "font-semibold text-success" : "tabular-nums"}>
               {formatFee(totals.deliveryFee)}
             </dd>
@@ -201,6 +203,12 @@ function CartPage() {
             <div className="flex justify-between text-success">
               <dt>{totals.couponLabel}</dt>
               <dd className="tabular-nums">− {formatBRL(totals.discount)}</dd>
+            </div>
+          ) : null}
+          {totals.pointsCredit > 0 ? (
+            <div className="flex justify-between text-success">
+              <dt>Pontos do Clube</dt>
+              <dd className="tabular-nums">− {formatBRL(totals.pointsCredit)}</dd>
             </div>
           ) : null}
           <div className="flex justify-between font-display text-base font-bold">
