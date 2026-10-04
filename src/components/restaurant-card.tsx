@@ -64,6 +64,7 @@ export function RestaurantCard({
         <span className="inline-flex items-center gap-1 text-fg">
           <Star className="size-3.5 fill-accent text-accent" />
           <span className="tabular-nums font-display font-semibold">{shown.score.toFixed(1)}</span>
+          {userRating ? <span className="text-primary">· você {userRating}</span> : null}
           <span className="text-subtle">({shown.count.toLocaleString("pt-BR")})</span>
         </span>
         <span className="inline-flex items-center gap-1">
@@ -103,6 +104,7 @@ export function RestaurantRow({ restaurant }: { restaurant: Restaurant }) {
           <span className="inline-flex items-center gap-0.5 font-display font-semibold text-fg">
             <Star className="size-3 fill-accent text-accent" />
             {shown.score.toFixed(1)}
+            {userRating ? <span className="font-sans font-medium text-primary">· você {userRating}</span> : null}
           </span>
           <span>{formatRange(restaurant.deliveryMin, restaurant.deliveryMax)}</span>
           <span className={fee === 0 ? "font-semibold text-success" : undefined}>{formatFee(fee)}</span>
