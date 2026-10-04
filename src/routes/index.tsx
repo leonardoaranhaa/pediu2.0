@@ -14,14 +14,13 @@ import {
   CATEGORIES,
   collectionsForHour,
   flashRestaurants,
-  getAddress,
   RESTAURANTS,
   shownFee,
   shownRating,
   type Restaurant,
 } from "@/lib/data";
 import { greetingForHour, hungerLine } from "@/lib/format";
-import { usePediu } from "@/lib/store";
+import { useAddress, usePediu } from "@/lib/store";
 
 export const Route = createFileRoute("/")({ component: Home });
 
@@ -31,7 +30,7 @@ function Home() {
   const points = usePediu((s) => s.points);
   const ratings = usePediu((s) => s.ratings);
   const unread = usePediu((s) => s.notifications.filter((n) => !n.read).length);
-  const address = getAddress(addressId);
+  const address = useAddress(addressId);
   const hour = new Date().getHours();
   const greet = greetingForHour(hour);
   const collection = collectionsForHour(hour);

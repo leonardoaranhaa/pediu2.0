@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronRight, Heart, HelpCircle, MapPin, Ticket, UserRound, Zap } from "lucide-react";
+import { ChevronRight, Heart, HelpCircle, MapPin, Smartphone, Ticket, UserRound, Zap } from "lucide-react";
 import { useState } from "react";
+import { AddressSheet } from "@/components/address-sheet";
+import { HelpSheet } from "@/components/help-sheet";
 import { RestaurantRow } from "@/components/restaurant-card";
 import { Screen } from "@/components/shell";
 import { Button } from "@/components/ui/button";
-import { ADDRESSES, clubTier, COUPONS, getRestaurant } from "@/lib/data";
-import { usePediu } from "@/lib/store";
+import { clubTier, COUPONS, getRestaurant } from "@/lib/data";
+import { useAddresses, usePediu } from "@/lib/store";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -18,7 +20,10 @@ function ProfilePage() {
   const setAddress = usePediu((s) => s.setAddress);
   const favorites = usePediu((s) => s.favorites);
   const points = usePediu((s) => s.points);
+  const addresses = useAddresses();
   const [draft, setDraft] = useState(name);
+  const [addrOpen, setAddrOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const favRestaurants = favorites.map(getRestaurant).filter((r) => Boolean(r));
   const tier = clubTier(points);
   const progress = tier.next ? Math.min(1, points / tier.next) : 1;
@@ -66,12 +71,21 @@ function ProfilePage() {
         </label>
 
         <section className="mt-5">
-          <p className="inline-flex items-center gap-1.5 font-display text-sm font-semibold">
-            <MapPin className="size-4 text-primary" />
-            Endereços
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="inline-flex items-center gap-1.5 font-display text-sm font-semibold">
+              <MapPin className="size-4 text-primary" />
+              Endereços
+            </p>
+            <button
+              type="button"
+              onClick={() => setAddrOpen(true)}
+              className="text-xs font-semibold text-primary"
+            >
+              Gerenciar
+            </button>
+          </div>
           <div className="mt-2 grid gap-2">
-            {ADDRESSES.map((a) => (
+            {addresses.map((a) => (
               <button
                 key={a.id}
                 type="button"
@@ -84,6 +98,7 @@ function ProfilePage() {
                 <p className="font-display text-sm font-semibold">{a.label}</p>
                 <p className={addressId === a.id ? "text-xs text-ink-fg/70" : "text-xs text-muted"}>
                   {a.street} · {a.neighborhood}
+                  {a.complement ? ` · ${a.complement}` : ""}
                 </p>
               </button>
             ))}
@@ -130,23 +145,37 @@ function ProfilePage() {
           )}
         </section>
 
-        <button
-          type="button"
-          onClick={() => toast.message("Central de ajuda · pedidos, cupons e entregadores.")}
-          className="mt-5 flex w-full items-center justify-between rounded-[18px] bg-surface px-3 py-3 text-sm font-semibold shadow-card"
-        >
-          <span className="inline-flex items-center gap-2">
-            <HelpCircle className="size-4" />
-            Ajuda
-          </span>
-          <ChevronRight className="size-4 text-subtle" />
-        </button>
+        <div className="mt-5 grid gap-2">
+          <Link
+            to="/app"
+            className="flex w-full items-center justify-between rounded-[18px] bg-surface px-3 py-3 text-sm font-semibold shadow-card"
+          >
+            <span className="inline-flex items-center gap-2">
+              <Smartphone className="size-4" />
+              Instalar no Android
+            </span>
+            <ChevronRight className="size-4 text-subtle" />
+          </Link>
+          <button
+            type="button"
+            onClick={() => setHelpOpen(true)}
+            className="flex w-full items-center justify-between rounded-[18px] bg-surface px-3 py-3 text-sm font-semibold shadow-card"
+          >
+            <span className="inline-flex items-center gap-2">
+              <HelpCircle className="size-4" />
+              Ajuda
+            </span>
+            <ChevronRight className="size-4 text-subtle" />
+          </button>
+        </div>
 
         <p className="mt-6 text-center text-xs text-subtle">Pediu · comida e mercado · São Paulo</p>
         <Button asChild variant="ghost" className="mx-auto mt-1">
           <Link to="/taste">Sabor do momento</Link>
         </Button>
       </main>
+      <AddressSheet open={addrOpen} onOpenChange={setAddrOpen} />
+      <HelpSheet open={helpOpen} onOpenChange={setHelpOpen} />
     </Screen>
   );
 }

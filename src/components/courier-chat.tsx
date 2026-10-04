@@ -1,32 +1,55 @@
 import { Send } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Drawer } from "vaul";
 import { Button } from "@/components/ui/button";
+import type { DeliveryStatus } from "@/lib/clock";
+import { courierReply } from "@/lib/courier-replies";
 import { CANNED_REPLIES } from "@/lib/data";
 import { usePediu } from "@/lib/store";
 
 export function CourierChat({
   orderId,
   courierName,
+  status,
   open,
   onOpenChange,
 }: {
   orderId: string;
   courierName: string;
+  status: DeliveryStatus;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const messages = usePediu((s) => s.chats[orderId] ?? []);
   const send = usePediu((s) => s.sendChat);
   const [draft, setDraft] = useState("");
+  const [typing, setTyping] = useState(false);
+  const timer = useRef<number | null>(null);
+  const feed = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timer.current) window.clearTimeout(timer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const el = feed.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages.length, typing, open]);
 
   function push(text: string) {
     send(orderId, text, "me");
     setDraft("");
-    window.setTimeout(() => {
-      send(orderId, "Combinado. Te aviso na porta.", "courier");
+    setTyping(true);
+    if (timer.current) window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      send(orderId, courierReply(text, status), "courier");
+      setTyping(false);
     }, 900);
   }
+
+  const firstName = courierName.split(" ")[0];
 
   return (
     <Drawer.Root open={open} onOpenChange={onOpenChange}>
@@ -34,9 +57,9 @@ export function CourierChat({
         <Drawer.Overlay className="fixed inset-0 z-50 bg-ink/50" />
         <Drawer.Content className="fixed inset-x-0 bottom-0 z-50 mx-auto flex max-h-[86dvh] max-w-phone flex-col rounded-t-3xl bg-bg outline-none">
           <div className="mx-auto mt-2 h-1.5 w-12 rounded-full bg-border-strong" />
-          <Drawer.Title className="px-5 pt-4 font-display text-lg font-bold">Chat com {courierName.split(" ")[0]}</Drawer.Title>
+          <Drawer.Title className="px-5 pt-4 font-display text-lg font-bold">Chat com {firstName}</Drawer.Title>
           <Drawer.Description className="px-5 text-xs text-muted">Mensagens da entrega em tempo real</Drawer.Description>
-          <div className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto px-5 pb-3">
+          <div ref={feed} className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto px-5 pb-3">
             {messages.map((m) => (
               <div
                 key={m.id}
@@ -49,6 +72,11 @@ export function CourierChat({
                 {m.text}
               </div>
             ))}
+            {typing ? (
+              <p className="mr-10 inline-flex rounded-[18px] rounded-bl-sm bg-surface px-3 py-2 text-xs text-muted shadow-card">
+                {firstName} está digitando…
+              </p>
+            ) : null}
           </div>
           <div className="flex flex-wrap gap-1.5 px-5">
             {CANNED_REPLIES.map((c) => (

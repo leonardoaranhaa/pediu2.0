@@ -2,17 +2,18 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { type DeliveryStatus } from "@/lib/clock";
 import {
+  ADDRESSES,
   applyCoupon,
   COURIERS,
   dishesOf,
   earnedPoints,
-  getAddress,
   getDish,
   getRestaurant,
   REDEEM_BRL,
   REDEEM_POINTS,
   clubTier,
   type Extra,
+  type SavedAddress,
 } from "@/lib/data";
 
 export type { DeliveryStatus };
@@ -104,6 +105,8 @@ type PediuState = {
   notifications: Notif[];
   /** BRL already redeemed, waiting on the next bag. */
   pointsCredit: number;
+  /** Addresses this person typed in, on top of the shipped ones. */
+  customAddresses: SavedAddress[];
   /** Latest star rating this person gave each restaurant. */
   ratings: Record<string, number>;
   setName: (name: string) => void;
@@ -125,6 +128,8 @@ type PediuState = {
   orderById: (id: string) => Order | undefined;
   rateOrder: (id: string, rating: number) => void;
   redeemPoints: () => boolean;
+  addAddress: (input: Omit<SavedAddress, "id">) => string;
+  removeAddress: (id: string) => void;
   sendChat: (orderId: string, text: string, from?: ChatMsg["from"]) => void;
   seedCourierChat: (orderId: string, text: string) => void;
   markNotifsRead: () => void;
@@ -240,6 +245,7 @@ export const usePediu = create<PediuState>()(
       notifications: STARTER_NOTIFS,
       pointsCredit: 0,
       ratings: {},
+      customAddresses: [],
       setName: (name) => set({ name: name.trim() || "Você" }),
       setAddress: (id) => set({ addressId: id }),
       setPayment: (p) => set({ payment: p }),
@@ -380,6 +386,22 @@ export const usePediu = create<PediuState>()(
         });
         return true;
       },
+      addAddress: (input) => {
+        const id = `addr-${Date.now().toString(36)}`;
+        set({
+          customAddresses: [...(get().customAddresses ?? []), { ...input, id }],
+          addressId: id,
+        });
+        return id;
+      },
+      removeAddress: (id) => {
+        const custom = (get().customAddresses ?? []).filter((a) => a.id !== id);
+        const fallback = ADDRESSES[0]!.id;
+        set({
+          customAddresses: custom,
+          addressId: get().addressId === id ? fallback : get().addressId,
+        });
+      },
       sendChat: (orderId, text, from = "me") => {
         const t = text.trim();
         if (!t) return;
@@ -402,6 +424,23 @@ export const usePediu = create<PediuState>()(
   ),
 );
 
+export function addressList(custom: SavedAddress[] | undefined) {
+  return [...ADDRESSES, ...(custom ?? [])];
+}
+
+export function findAddress(custom: SavedAddress[] | undefined, id: string) {
+  return addressList(custom).find((a) => a.id === id) ?? ADDRESSES[0]!;
+}
+
+export function useAddresses() {
+  return addressList(usePediu((s) => s.customAddresses));
+}
+
+export function useAddress(id: string) {
+  const custom = usePediu((s) => s.customAddresses);
+  return findAddress(custom, id);
+}
+
 export function useHydratePediu() {
   if (typeof window === "undefined") return;
   if (!usePediu.persist.hasHydrated()) {
@@ -409,4 +448,4 @@ export function useHydratePediu() {
   }
 }
 
-export { getAddress, dishesOf };
+export { dishesOf };

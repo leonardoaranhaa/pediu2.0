@@ -1,14 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Check, ChevronLeft, MessageCircle, Phone, Star } from "lucide-react";
+import { Check, ChevronLeft, HelpCircle, MessageCircle, Phone, Star } from "lucide-react";
 import { useEffect, useState } from "react";
+import { CallSheet } from "@/components/call-sheet";
 import { CourierChat } from "@/components/courier-chat";
+import { HelpSheet } from "@/components/help-sheet";
 import { CourierMap } from "@/components/courier-map";
 import { Screen } from "@/components/shell";
 import { Button } from "@/components/ui/button";
 import { deliveryClock, STATUS_LABEL, useNow, type DeliveryStatus } from "@/lib/clock";
-import { getAddress } from "@/lib/data";
+import { courierReply } from "@/lib/courier-replies";
 import { formatBRL, formatRemain } from "@/lib/format";
-import { usePediu } from "@/lib/store";
+import { useAddress, usePediu } from "@/lib/store";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +38,11 @@ function OrderTracking() {
   const seed = usePediu((s) => s.seedCourierChat);
   const rateOrder = usePediu((s) => s.rateOrder);
   const now = useNow();
+  const address = useAddress(order?.addressId ?? "");
+  const sendChat = usePediu((s) => s.sendChat);
   const [chatOpen, setChatOpen] = useState(false);
+  const [callOpen, setCallOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [hoverRate, setHoverRate] = useState(0);
 
   const status = order ? deliveryClock(order, now).status : "received";
@@ -62,7 +68,6 @@ function OrderTracking() {
 
   const moving = status === "on_the_way" || status === "arriving";
   const stepIndex = STEPS.findIndex((s) => s.id === status);
-  const address = getAddress(order.addressId);
   const paid = order.junto ? (order.share ?? order.total) : order.total;
   const initial = order.courier.name
     .split(" ")
@@ -210,7 +215,7 @@ function OrderTracking() {
           <div className="mt-3 grid grid-cols-2 gap-2">
             <button
               type="button"
-              onClick={() => toast.message(`Ligando para ${order.courier.name.split(" ")[0]}…`)}
+              onClick={() => setCallOpen(true)}
               className="flex h-12 items-center justify-center gap-2 rounded-[16px] bg-surface text-sm font-semibold shadow-card"
             >
               <Phone className="size-4" />
@@ -227,6 +232,15 @@ function OrderTracking() {
           </div>
         )}
 
+        <button
+          type="button"
+          onClick={() => setHelpOpen(true)}
+          className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-[16px] bg-surface text-sm font-semibold text-muted shadow-card"
+        >
+          <HelpCircle className="size-4" />
+          Preciso de ajuda
+        </button>
+
         {status === "delivered" ? (
           <Button asChild className="mt-4 w-full rounded-full">
             <Link to="/">Pedir de novo</Link>
@@ -237,9 +251,20 @@ function OrderTracking() {
       <CourierChat
         orderId={order.id}
         courierName={order.courier.name}
+        status={status}
         open={chatOpen}
         onOpenChange={setChatOpen}
       />
+      <CallSheet
+        order={order}
+        open={callOpen}
+        onOpenChange={setCallOpen}
+        onSend={(text) => {
+          sendChat(order.id, text, "me");
+          window.setTimeout(() => sendChat(order.id, courierReply(text, status), "courier"), 900);
+        }}
+      />
+      <HelpSheet open={helpOpen} onOpenChange={setHelpOpen} />
     </Screen>
   );
 }
