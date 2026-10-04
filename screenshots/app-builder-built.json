@@ -1,0 +1,41 @@
+{
+  "url": "http://127.0.0.1:8081/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Pediu",
+      "hasCanvas": false,
+      "bodyTextLen": 2242,
+      "bodyTextHash": "f999f25221d3632a89bb30ec4320dde2e30ebcd7740c6d7978ddc1403fe66b22",
+      "bodyTextPrefix": "Casa Boa tarde. Um lanche agora muda o dia. Pizza, açaí, feijoad",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Pediu",
+      "hasCanvas": false,
+      "bodyTextLen": 2242,
+      "bodyTextHash": "f999f25221d3632a89bb30ec4320dde2e30ebcd7740c6d7978ddc1403fe66b22",
+      "bodyTextPrefix": "Casa Boa tarde. Um lanche agora muda o dia. Pizza, açaí, feijoad",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-built.json",
+  "divergesFromBaseline": true,
+  "baselineReasons": [
+    "desktop: body text replaced (similar length, page start changed)",
+    "mobile: body text replaced (similar length, page start changed)"
+  ]
+}

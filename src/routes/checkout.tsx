@@ -4,9 +4,9 @@ import { useState, type ReactNode } from "react";
 import { Burst } from "@/components/burst";
 import { Screen } from "@/components/shell";
 import { Button } from "@/components/ui/button";
-import { ADDRESSES, clubTier, earnedPoints, JUNTO, pointsMultiplier, TIP_OPTIONS } from "@/lib/data";
+import { clubTier, earnedPoints, JUNTO, pointsMultiplier, TIP_OPTIONS } from "@/lib/data";
 import { formatBRL, formatFee } from "@/lib/format";
-import { cartTotals, chargeOf, usePediu } from "@/lib/store";
+import { cartTotals, chargeOf, useAddresses, usePediu } from "@/lib/store";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +39,7 @@ function CheckoutPage() {
   const toggleJunto = usePediu((s) => s.toggleJunto);
   const points = usePediu((s) => s.points);
   const pointsCredit = usePediu((s) => s.pointsCredit);
+  const addresses = useAddresses();
   const totals = cartTotals(cart, coupon, payment, { points, pointsCredit });
   const [placing, setPlacing] = useState(false);
   const { grand, share } = chargeOf(totals.total, tip, junto);
@@ -84,7 +85,7 @@ function CheckoutPage() {
         <section className="mt-5">
           <p className="font-display text-sm font-semibold">Entregar em</p>
           <div className="mt-2 grid gap-2">
-            {ADDRESSES.map((a) => (
+            {addresses.map((a) => (
               <button
                 key={a.id}
                 type="button"
