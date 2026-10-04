@@ -1,0 +1,21 @@
+{
+  "host": "pediu.grok.me",
+  "startPath": "/",
+  "packageId": "me.grok.pediu",
+  "name": "Pediu",
+  "launcherName": "Pediu",
+  "themeColor": "#111111",
+  "backgroundColor": "#fff4e8",
+  "appVersionCode": 1,
+  "appVersionName": "1.0.0",
+  "signingKey": {
+    "alias": "pediu",
+    "path": "android/pediu-sideload.keystore"
+  },
+  "fingerprints": [
+    {
+      "name": "sideload",
+      "value": "CB:BE:02:A9:3C:FD:29:14:A7:97:C4:48:55:31:22:2B:50:57:B7:10:C7:9C:6F:4F:1F:E2:11:E4:11:3F:76:FF"
+    }
+  ]
+}

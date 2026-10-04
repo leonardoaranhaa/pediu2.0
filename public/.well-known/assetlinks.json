@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "me.grok.pediu",
+      "sha256_cert_fingerprints": [
+        "CB:BE:02:A9:3C:FD:29:14:A7:97:C4:48:55:31:22:2B:50:57:B7:10:C7:9C:6F:4F:1F:E2:11:E4:11:3F:76:FF"
+      ]
+    }
+  }
+]

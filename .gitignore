@@ -3,3 +3,8 @@ node_modules/
 .github_repo
 .env
 .env.*
+
+# Android wrapper build output and signing key (see android/README.md)
+android/project/
+android/dist/
+android/*.keystore

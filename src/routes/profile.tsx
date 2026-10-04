@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronRight, Heart, HelpCircle, MapPin, Ticket, UserRound, Zap } from "lucide-react";
+import { ChevronRight, Heart, HelpCircle, MapPin, Smartphone, Ticket, UserRound, Zap } from "lucide-react";
 import { useState } from "react";
 import { AddressSheet } from "@/components/address-sheet";
 import { HelpSheet } from "@/components/help-sheet";
@@ -145,17 +145,29 @@ function ProfilePage() {
           )}
         </section>
 
-        <button
-          type="button"
-          onClick={() => setHelpOpen(true)}
-          className="mt-5 flex w-full items-center justify-between rounded-[18px] bg-surface px-3 py-3 text-sm font-semibold shadow-card"
-        >
-          <span className="inline-flex items-center gap-2">
-            <HelpCircle className="size-4" />
-            Ajuda
-          </span>
-          <ChevronRight className="size-4 text-subtle" />
-        </button>
+        <div className="mt-5 grid gap-2">
+          <Link
+            to="/app"
+            className="flex w-full items-center justify-between rounded-[18px] bg-surface px-3 py-3 text-sm font-semibold shadow-card"
+          >
+            <span className="inline-flex items-center gap-2">
+              <Smartphone className="size-4" />
+              Instalar no Android
+            </span>
+            <ChevronRight className="size-4 text-subtle" />
+          </Link>
+          <button
+            type="button"
+            onClick={() => setHelpOpen(true)}
+            className="flex w-full items-center justify-between rounded-[18px] bg-surface px-3 py-3 text-sm font-semibold shadow-card"
+          >
+            <span className="inline-flex items-center gap-2">
+              <HelpCircle className="size-4" />
+              Ajuda
+            </span>
+            <ChevronRight className="size-4 text-subtle" />
+          </button>
+        </div>
 
         <p className="mt-6 text-center text-xs text-subtle">Pediu · comida e mercado · São Paulo</p>
         <Button asChild variant="ghost" className="mx-auto mt-1">
